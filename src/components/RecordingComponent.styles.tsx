@@ -30,4 +30,18 @@ export const AudioContainer = styled.div`
     width: 400px;
     padding: 10px;
   }
+
+  .action-button {
+    padding: 0.5em 1em 0.5em;
+    border-radius: 10px;
+    border: 0px;
+    background-color: #62c1e9;
+  }
+
+  .clear-button {
+    padding: 0.5em 1em 0.5em;
+    border-radius: 10px;
+    border: 1px solid #62c1e9;
+    background-color: transparent;
+  }
 `

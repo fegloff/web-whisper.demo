@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AudioRecorder } from "react-audio-voice-recorder";
+import { useAudioRecorder } from 'react-audio-voice-recorder';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
@@ -15,6 +15,26 @@ const RecordingComponent = () => {
     resetTranscript,
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
+  const {
+    startRecording,
+    stopRecording,
+    recordingBlob,
+    isRecording,
+  } = useAudioRecorder();
+
+  useEffect(() => {
+    const callWhisperModel = async (blob: Blob) =>{
+      const response = await speechToText(blob);
+        if (transcription) {
+          setTranscription(transcription.concat(`\n${response}`));
+        } else {
+          setTranscription(response);
+        }
+    }
+    if (!recordingBlob) return;
+      callWhisperModel(recordingBlob)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingBlob])
 
   useEffect(() => {
     if (transcript) {
@@ -22,20 +42,6 @@ const RecordingComponent = () => {
     }
   }, [transcript]);
   
-  const updateTranscriptionWithWhisper = async (blob: Blob | MediaSource) => {
-    try {
-      if (blob) {
-        const response = await speechToText(blob as Blob);
-        if (transcription) {
-          setTranscription(transcription.concat(`\n${response}`));
-        } else {
-          setTranscription(response);
-        }
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  };
 
   const resetTranscription = () => {
     setTranscription("")
@@ -50,25 +56,29 @@ const RecordingComponent = () => {
     <AudioContainer>
       <div className='recorder-panel'>
         <div className="mic-panel">
-          <p>Using Whisper</p>
-          <AudioRecorder
-            onRecordingComplete={updateTranscriptionWithWhisper}
-            audioTrackConstraints={{
-              noiseSuppression: true,
-              echoCancellation: true,
+          <p>Use Whisper</p>
+          <button
+            onClick={() => {
+              isRecording
+                ? stopRecording()
+                : startRecording();
             }}
-            // downloadOnSavePress={true}
-            downloadFileExtension="mp3"
-          />
+            className='action-button'
+            disabled={listening}
+          >
+            {isRecording ? 'recording' : 'record'}
+          </button>
         </div>
         <div className="mic-panel">
-          <p>Using SpeechRecognition</p>
+          <p>Use SpeechRecognition</p>
           <button
             onClick={() => {
               listening
                 ? SpeechRecognition.stopListening()
                 : SpeechRecognition.startListening();
             }}
+            className='action-button'
+            disabled={isRecording}
           >
             {listening ? 'recording' : 'record'}
           </button>
@@ -77,7 +87,7 @@ const RecordingComponent = () => {
 
       <div className="transcription-container">{transcription}</div>
       <div>
-        <button onClick={resetTranscription}>Clear</button>
+        <button onClick={resetTranscription} className='clear-button'>Clear</button>
       </div>
     </AudioContainer>
   );
