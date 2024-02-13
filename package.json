@@ -46,6 +46,7 @@
     ]
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.5.2",
     "@types/react-speech-recognition": "^3.9.5"
   }
 }
