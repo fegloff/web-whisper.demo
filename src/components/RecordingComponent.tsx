@@ -77,6 +77,7 @@ const RecordingComponent = () => {
         stopRecording();
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
 
   useEffect(() => {
