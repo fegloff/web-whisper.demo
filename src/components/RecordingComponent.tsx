@@ -6,6 +6,30 @@ import { speechToText } from "../api/openai";
 
 import { AudioContainer } from "./RecordingComponent.styles";
 
+const getMediaOptions = () => {
+  if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
+    return {
+      mediaOptions: {mimeType: 'video/webm; codecs=vp9'}, 
+      mimeType: 'video/webm'
+    } 
+  } else if (MediaRecorder.isTypeSupported('video/webm')) {
+    return {
+      mediaOptions: {mimeType: 'video/webm'}, 
+      mimeType: 'video/webm'
+    }
+  } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+    return {
+      mediaOptions: {mimeType: 'video/mp4', videoBitsPerSecond : 100000}, 
+      mimeType: 'video/mp4'
+    }
+  } else {
+    console.error("no suitable mimetype found for this device");
+    return {
+      mediaOptions: undefined, 
+      mimeType: 'audio/wav'
+    }
+  }
+}
 const RecordingComponent = () => {
   const [transcription, setTranscription] = useState("");
   const {
@@ -20,25 +44,8 @@ const RecordingComponent = () => {
   >();
   const [isDataSent, setIsDataSent] = useState(false);
   const [recordedChunks, setRecordedChunks] = useState<BlobPart[]>([]);
-  const [mediaOptions, setMediaOptions] = useState<{} | undefined>({})
-  const [mimeType, setMimeType] = useState('')
 
-  useEffect(() => {
-    if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
-      setMediaOptions({mimeType: 'video/webm; codecs=vp9'});
-      setMimeType('video/webm')
-    } else  if (MediaRecorder.isTypeSupported('video/webm')) {
-      setMediaOptions({mimeType: 'video/webm'});
-      setMimeType('video/webm')
-    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-      setMediaOptions({mimeType: 'video/mp4', videoBitsPerSecond : 100000});
-      setMimeType('video/mp4')
-    } else {
-      setMediaOptions(undefined)
-      setMimeType('audio/wav')
-      console.error("no suitable mimetype found for this device");
-    }
-  }, [])
+  const {mediaOptions, mimeType} = getMediaOptions()
 
   useEffect(() => {
     let isStopped = false;
@@ -138,7 +145,7 @@ const RecordingComponent = () => {
         </div>
       </div>
 
-      <div className="transcription-container">{transcription}</div>
+      <div className="transcription-container"><textarea readOnly value={transcription} rows={5}/></div>
       <div>
         <button onClick={resetTranscription} className="clear-button">
           Clear

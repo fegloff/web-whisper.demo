@@ -31,6 +31,12 @@ export const AudioContainer = styled.div`
     width: 300px;
     max-width: 90%;
     padding: 10px;
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
   }
 
   .action-button {
