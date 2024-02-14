@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useAudioRecorder } from 'react-audio-voice-recorder';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
@@ -15,38 +14,99 @@ const RecordingComponent = () => {
     resetTranscript,
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
-  const {
-    startRecording,
-    stopRecording,
-    recordingBlob,
-    isRecording,
-  } = useAudioRecorder();
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<
+    MediaRecorder | undefined
+  >();
+  const [isDataSent, setIsDataSent] = useState(false);
+  const [recordedChunks, setRecordedChunks] = useState<BlobPart[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<{} | undefined>({})
+  const [mimeType, setMimeType] = useState('')
 
   useEffect(() => {
-    const callWhisperModel = async (blob: Blob) =>{
-      const response = await speechToText(blob);
-        if (transcription) {
-          setTranscription(transcription.concat(`\n${response}`));
-        } else {
-          setTranscription(response);
-        }
+    if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
+      setMediaOptions({mimeType: 'video/webm; codecs=vp9'});
+      setMimeType('video/webm')
+    } else  if (MediaRecorder.isTypeSupported('video/webm')) {
+      setMediaOptions({mimeType: 'video/webm'});
+      setMimeType('video/webm')
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      setMediaOptions({mimeType: 'video/mp4', videoBitsPerSecond : 100000});
+      setMimeType('video/mp4')
+    } else {
+      setMediaOptions(undefined)
+      setMimeType('audio/wav')
+      console.error("no suitable mimetype found for this device");
     }
-    if (!recordingBlob) return;
-      callWhisperModel(recordingBlob)
+  }, [])
+
+  useEffect(() => {
+    let isStopped = false;
+
+    const handleDataAvailable = (event: { data: BlobPart }) => {
+      setRecordedChunks((prevChunks) => [...prevChunks, event.data]);
+    };
+
+    const startRecording = async () => {
+      setRecordedChunks([])
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const newMediaRecorder = new MediaRecorder(stream, mediaOptions);
+      newMediaRecorder.ondataavailable = handleDataAvailable;
+      newMediaRecorder.start(1000); // timeslice => send bits of audio of the specified length
+      setMediaRecorder(newMediaRecorder);
+    };
+    const stopRecording = () => {
+      if (mediaRecorder && !isStopped) {
+        mediaRecorder.addEventListener('stop', () => {
+          setIsRecording(false);
+        });
+        mediaRecorder.stop();
+        isStopped = true;
+        setIsDataSent(false);
+      }
+    };
+
+    if (isRecording) {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+
+    return () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+      }
+    };
+  }, [isRecording]);
+
+  useEffect(() => {
+    const sendAudioToWhisper = async () => {
+      const audioBlob = new Blob(recordedChunks, { type: mimeType });
+      const response = await speechToText(audioBlob);
+      if (!!response) {
+        setTranscription(response);
+      }
+    };
+    if (recordedChunks.length > 0) {
+      sendAudioToWhisper()
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordingBlob])
+  }, [recordedChunks, isDataSent])
+  
+  const handleRecordToggle = () => {
+    setIsRecording(!isRecording);
+  };
 
   useEffect(() => {
     if (transcript) {
       setTranscription(transcript);
     }
   }, [transcript]);
-  
 
   const resetTranscription = () => {
-    setTranscription("")
-    resetTranscript()
-  }
+    setTranscription("");
+    resetTranscript();
+  };
 
   if (!browserSupportsSpeechRecognition) {
     return <span>Browser doesn't support speech recognition.</span>;
@@ -54,19 +114,11 @@ const RecordingComponent = () => {
 
   return (
     <AudioContainer>
-      <div className='recorder-panel'>
+      <div className="recorder-panel">
         <div className="mic-panel">
           <p>Use Whisper</p>
-          <button
-            onClick={() => {
-              isRecording
-                ? stopRecording()
-                : startRecording();
-            }}
-            className='action-button'
-            disabled={listening}
-          >
-            {isRecording ? 'recording' : 'record'}
+          <button onClick={handleRecordToggle} disabled={listening} className="action-button">
+            {isRecording ? "Recording..." : "Record"}
           </button>
         </div>
         <div className="mic-panel">
@@ -75,19 +127,21 @@ const RecordingComponent = () => {
             onClick={() => {
               listening
                 ? SpeechRecognition.stopListening()
-                : SpeechRecognition.startListening();
+                : SpeechRecognition.startListening({ continuous: true });
             }}
-            className='action-button'
+            className="action-button"
             disabled={isRecording}
           >
-            {listening ? 'recording' : 'record'}
+            {listening ? "Recording..." : "Record"}
           </button>
         </div>
       </div>
 
       <div className="transcription-container">{transcription}</div>
       <div>
-        <button onClick={resetTranscription} className='clear-button'>Clear</button>
+        <button onClick={resetTranscription} className="clear-button">
+          Clear
+        </button>
       </div>
     </AudioContainer>
   );

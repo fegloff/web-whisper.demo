@@ -6,6 +6,7 @@ export const AudioContainer = styled.div`
   flex-direction: column;
   align-items: center !important;
   width: 100% !important;
+  /* max-width: 90% !important;; */
   gap: 1em;
 
   .recorder-panel {
@@ -27,7 +28,8 @@ export const AudioContainer = styled.div`
     border: 1px solid gray;
     border-radius: 15px;
     height: 100px;
-    width: 400px;
+    width: 300px;
+    max-width: 90%;
     padding: 10px;
   }
 

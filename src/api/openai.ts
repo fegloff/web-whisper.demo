@@ -2,7 +2,6 @@ import axios from 'axios';
 import config from '../config';
 
 export async function speechToText(blob: Blob): Promise<string> {
-  // const filename = filePath.split('recordings/')[1]
   try {
     const filename = `/voiceMemo_${Date.now()}.mp3`
     const formData = new FormData();
@@ -17,7 +16,6 @@ export async function speechToText(blob: Blob): Promise<string> {
       data: formData,
     };
     const response = await axios.request(request);
-    // console.log(response);
     return response.data;
   } catch (e) {
     console.log(e);
